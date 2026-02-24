@@ -1,173 +1,149 @@
-# Agent Guidelines for Payroll Manager
+# AGENTS
 
-This document provides guidelines for AI agents working on this codebase.
+## Purpose
+This file orients coding agents to the repo conventions, commands, and
+style rules. Keep edits aligned with the existing FastAPI + SQLModel
+structure.
 
-## Project Overview
+## Repository Snapshot
+- Language: Python (>=3.14)
+- Frameworks: FastAPI, SQLModel, SQLAlchemy
+- Entry point: `main.py` (creates `app`)
+- DB: local Postgres URL in `app/db.py`
+- Tooling: Ruff (lint + format) via pre-commit
 
-- **Framework**: FastAPI
-- **Python Version**: 3.14
-- **Package Manager**: pip/venv
-- **Linter**: Ruff
-- **Type Checker**: Pyright (strict mode)
-- **Test Framework**: pytest
+## Build, Lint, Test
 
----
+### Install / Build
+There is no explicit build step; install deps and run the app.
 
-## Commands
+- Install (uv, preferred):
+  `uv sync`
+- Install (pip, alternative):
+  `python -m pip install -e .`
 
-### Virtual Environment
+### Run App (local)
+- Dev server (uvicorn):
+  `uvicorn main:app --reload`
+- Dev server (fastapi CLI):
+  `fastapi dev main.py`
 
-```bash
-source venv/bin/activate
-pip install -r requirements.txt
-```
+### Lint / Format
+- Lint (Ruff):
+  `ruff check .`
+- Lint + auto-fix (Ruff):
+  `ruff check . --fix`
+- Format (Ruff):
+  `ruff format .`
+- Pre-commit (Ruff hooks):
+  `pre-commit run --all-files`
 
-### Running the Application
+### Tests
+No test suite is configured yet; `pytest` is not listed in dependencies.
+If tests are added, use these conventions:
 
-```bash
-uvicorn main:app --reload
-# or
-python -m uvicorn main:app --reload
-```
+- Run all tests:
+  `python -m pytest`
+- Run a single file:
+  `python -m pytest path/to/test_file.py`
+- Run a single test (node id):
+  `python -m pytest path/to/test_file.py::TestClass::test_name`
+- Run tests by name pattern:
+  `python -m pytest -k "employee and not slow"`
 
-### Linting
-
-```bash
-ruff check .
-ruff check . --fix
-```
-
-### Type Checking
-
-```bash
-pyright
-# or
-python -m pyright
-```
-
-### Testing
-
-```bash
-pytest                     # Run all tests
-pytest -v                  # Verbose output
-pytest tests/test_app.py   # Single test file
-pytest tests/test_app.py::test_openapi  # Single test function
-pytest -k "test_openapi"   # Tests matching pattern
-pytest --cov=. --cov-report=term-missing  # With coverage
-```
-
-### Pre-commit Hooks
-
-```bash
-pre-commit install
-pre-commit run --all-files
-```
-
----
+If you add tests, update `pyproject.toml` with `pytest` and any plugins.
 
 ## Code Style Guidelines
 
-### General
-
-- **Line Length**: 88 characters
-- **Python Version**: 3.14+
-- **No Comments**: Do NOT add comments unless explicitly requested
-- **Type Hints**: Always use type hints (strict mode in pyright)
-
 ### Imports
-
-- **Order**: Standard library → Third-party → Local application
-- Use absolute imports (e.g., `from main import app`)
-- Never use wildcard imports (`from module import *`)
+- Order imports in three blocks with a blank line between:
+  1) standard library
+  2) third-party
+  3) local application modules (`app.*`)
+- Use explicit imports (avoid wildcard imports).
+- Prefer `from x import y` for commonly used names; keep modules small.
 
 ### Formatting
+- Use Ruff formatting (`ruff format`).
+- 4-space indentation; no tabs.
+- Keep lines reasonably short (Ruff default formatting).
+- One blank line between top-level definitions.
+- Trailing commas in multi-line constructs for stable diffs.
 
-- Use Ruff for formatting (`ruff format .`)
-- Do not manually format
+### Types and Annotations
+- Use type annotations for public functions and route handlers.
+- Prefer built-in generic types (e.g., `list[Employee]`).
+- Use `Optional[T]` and explicit `= None` when fields are nullable
+  (matches current models and schemas).
+- Keep return types explicit for endpoints (e.g., `-> Employee`).
 
 ### Naming Conventions
+- Modules: `snake_case.py` (current layout already follows this).
+- Classes: `PascalCase` (`Employee`, `EmployeeCreate`).
+- Functions: `snake_case` (`create_employee`, `get_session`).
+- Constants: `UPPER_SNAKE_CASE` (`POSTGRESQL_URL`).
+- Use descriptive route names and consistent endpoint paths.
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Variables | snake_case | `user_name` |
-| Functions | snake_case | `def calculate_pay()` |
-| Classes | PascalCase | `class UserModel` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY` |
-| Modules | snake_case | `user_service.py` |
-
-### Type Annotations
-
-- Always use explicit type hints for function parameters and return types
-- Use `Optional[X]` instead of `X | None` for compatibility
-- Use `list[X]`, `dict[X, Y]` instead of `List`, `Dict` (Python 3.9+)
-
-```python
-# Good
-def get_user(user_id: int) -> Optional[User]:
-    ...
-
-# Avoid
-def get_user(user_id):  # No type hints
-    ...
-```
-
-### Pydantic Models
-
-- Use Pydantic `BaseModel` for data validation
-- Always inherit from `BaseModel` for request/response models
-- Use Pydantic v2 (not v1)
-
-```python
-from pydantic import BaseModel
-
-class User(BaseModel):
-    id: int
-    name: str
-    email: Optional[str] = None
-```
+### FastAPI / SQLModel Patterns
+- Routes live in `app/routes/*` and are registered in `main.py`.
+- Use `APIRouter()` and keep endpoints focused on one responsibility.
+- Use SQLModel models in `app/models.py` and schema classes in
+  `app/schemas.py`.
+- Use dependency-injected sessions (`SessionDep`) for DB access.
+- Wrap DB operations with commit/refresh when mutating state.
+- For partial updates, use `model_dump(exclude_unset=True)`.
 
 ### Error Handling
+- Use `HTTPException` for request errors with explicit status codes.
+- Prefer `status` constants (`status.HTTP_404_NOT_FOUND`).
+- Return `None` only when response status is 204 or explicit.
+- Keep validation and domain errors clear and consistent.
 
-- Use appropriate exception types
-- Let FastAPI handle HTTP exceptions naturally
-- Use `try/except` only when you can meaningfully handle the error
-- Avoid catching generic `Exception` or `BaseException`
+### API Behavior
+- Use async endpoints only when awaiting IO; sync is fine for DB-only calls.
+- Keep path parameters typed (e.g., `employee_id: int`).
+- Return ORM/SQLModel instances only when they are valid response models.
+- Favor list responses as `list[Model]` and cast query results explicitly.
+- Include `status_code=204` for deletes that return `None`.
+- Avoid mixing response shapes within the same endpoint.
+- Use `.model_dump()` for create/replace payloads before constructing models.
+- For PATCH, use `exclude_unset=True` to avoid overwriting fields.
+- Raise 404 for missing resources before mutation.
 
-### FastAPI Best Practices
+### Data Modeling
+- Use SQLModel `Field` for primary keys and indexed fields.
+- Keep schema classes separate from persistence models.
+- Ensure schema defaults match DB defaults when relevant.
 
-- Use Pydantic models for request/response bodies
-- Define enums for fixed sets of values
-- Use appropriate HTTP methods (GET, POST, PUT, DELETE)
+### Dependency and Config Notes
+- DB URL is set in `app/db.py` for local Postgres. If you change it,
+  keep it centralized and configurable (env var or settings).
+- `create_db_and_tables()` currently runs on app lifespan start.
+  Be cautious about auto-migrations in production contexts.
 
-### Testing
+## Project Conventions
 
-- Place tests in `tests/` directory
-- Test file naming: `test_<module>.py`
-- Test function naming: `test_<description>`
+### File Layout
+- `main.py`: FastAPI app and router registration.
+- `app/db.py`: engine, session dependency, and DB init.
+- `app/models.py`: SQLModel table definitions.
+- `app/schemas.py`: request/response schemas.
+- `app/routes/`: API endpoints (group by domain).
 
----
+### Testing Conventions (when added)
+- Name tests `test_*.py` in a `tests/` folder.
+- Keep unit tests deterministic and fast; isolate DB where possible.
+- Use fixtures for shared setup (e.g., test DB sessions).
 
-## File Structure
+### Logging
+- Prefer structured, minimal logging in endpoints; avoid noisy logs.
+- If adding logging, use the standard library `logging` module.
 
-```
-payroll_manager/
-├── main.py              # Application entry point
-├── tests/
-│   └── test_app.py      # Tests
-├── pyproject.toml       # Project config (ruff)
-├── pyrightconfig.json   # Type checking config
-├── requirements.txt     # Dependencies
-└── .pre-commit-config.yaml
-```
+## Cursor / Copilot Rules
+- No Cursor rules found in `.cursor/rules/` or `.cursorrules`.
+- No Copilot rules found in `.github/copilot-instructions.md`.
 
----
-
-## Common Issues
-
-1. **ImportError: No module named 'app'**: The app is in `main.py`, not an `app/` directory. Use `from main import app`.
-
-2. **Pydantic Error**: Ensure models inherit from `BaseModel` (Pydantic v2), not plain Python classes.
-
-3. **Type Errors**: Run `pyright` to check for strict type errors.
-
-4. **Lint Errors**: Run `ruff check .` to identify and fix linting issues.
+## Agent Tips
+- Read existing code for patterns before introducing new ones.
+- Keep changes small and consistent with existing style.
+- Update this file if you introduce new tooling or conventions.
