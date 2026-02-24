@@ -1,16 +1,12 @@
-[tool.ruff]
-line-length = 88
-target-version = "py314"
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "B", "UP", "C4", "SIM", "TCH"]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-
-[tool.ruff.lint.isort]
-known-first-party = ["payroll_manager"]
-
-[tool.pytest.ini_options]
-pythonpath = [ "." ]
+[project]
+name = "payroll-manager"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.133.0",
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.2",
+    "sqlmodel>=0.0.37",
+]
