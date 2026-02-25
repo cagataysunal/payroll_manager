@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.18.4",
     "annotated-doc==0.0.4",
     "annotated-types==0.7.0",
     "anyio==4.12.1",
@@ -31,6 +32,7 @@ dependencies = [
     "markupsafe==3.0.3",
     "mdurl==0.1.2",
     "nodeenv==1.10.0",
+    "passlib[bcrypt]>=1.7.4",
     "platformdirs==4.9.2",
     "pre-commit==4.5.1",
     "psycopg2==2.9.11",
@@ -40,6 +42,7 @@ dependencies = [
     "pydantic-settings==2.13.1",
     "pygments==2.19.2",
     "python-dotenv==1.2.1",
+    "python-jose[cryptography]>=3.5.0",
     "python-multipart==0.0.22",
     "pyyaml==6.0.3",
     "rich==14.3.3",
